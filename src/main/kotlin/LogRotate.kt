@@ -25,12 +25,13 @@ val FLUSH_RATIO = 1
 val FLUSH_SECONDS: Long = 1
 
 fun main(args: Array<String>) {
+  val startTime = System.currentTimeMillis()
   val parsedArgs = CommandLineArgs(ArgParser(args))
   println("verbose=${parsedArgs.verbose} file=${parsedArgs.file} lines=${parsedArgs.lines} rotate=${parsedArgs.rotate}")
   var linesCounter = 0
   var fileHandle = rotateFile(parsedArgs, null)
   var lastFlush = System.currentTimeMillis()
-  while (true) {
+  while (System.currentTimeMillis() - startTime < TimeUnit.DAYS.toMillis(1)) {
     linesCounter++
     if (linesCounter % parsedArgs.lines == 0) {
       fileHandle = rotateFile(parsedArgs, fileHandle)
@@ -44,6 +45,7 @@ fun main(args: Array<String>) {
       lastFlush = System.currentTimeMillis()
     }
   }
+  println("${Date()} - finished listening")
 }
 
 fun rotateFile(parsedArgs: CommandLineArgs, fileHandle: PrintWriter?): PrintWriter {
@@ -60,13 +62,16 @@ fun rotateFile(parsedArgs: CommandLineArgs, fileHandle: PrintWriter?): PrintWrit
   for (i in parsedArgs.rotate downTo 1) {
     val currentFile = File("${parsedArgs.file}.$i")
     if (currentFile.exists()) {
+      println("${Date()} - rename ${parsedArgs.file}.$i -> ${parsedArgs.file}.${i+1}")
       currentFile.renameTo(File("${parsedArgs.file}.${i+1}"))
     }
   }
   val firstFile = File(parsedArgs.file)
   if (firstFile.exists()) {
+    println("${Date()} - rename first ${parsedArgs.file} -> ${parsedArgs.file}.1")
     firstFile.renameTo(File("${parsedArgs.file}.1"))
   }
+  println("${Date()} - done rotating files, back to log writing")
   return File(parsedArgs.file).printWriter()
 }
 
